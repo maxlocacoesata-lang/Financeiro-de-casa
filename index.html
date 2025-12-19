@@ -20,7 +20,7 @@
         #error-overlay {
             display: none; position: fixed; inset: 0; background: #fff1f2;
             color: #9f1239; padding: 24px; z-index: 9999; overflow: auto;
-            font-family: monospace; font-size: 12px;
+            font-family: monospace; font-size: 14px;
         }
         .spinner {
             width: 40px; height: 40px; border: 4px solid #e2e8f0;
@@ -52,22 +52,22 @@
 </head>
 <body>
     <div id="error-overlay">
-        <h1 style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">Erro de Carregamento</h1>
-        <pre id="error-log"></pre>
-        <button onclick="forceReset()" style="margin-top: 20px; padding: 10px; background: #9f1239; color: white; border: none; border-radius: 5px;">Resetar Aplicativo</button>
+        <h1 style="font-size: 20px; font-weight: bold; margin-bottom: 12px;">Erro de Inicialização</h1>
+        <p>Houve um erro ao carregar os componentes. Clique abaixo para resetar o navegador.</p>
+        <pre id="error-log" style="background: #fee2e2; padding: 12px; margin-top: 12px; border-radius: 8px; white-space: pre-wrap; font-size: 12px;"></pre>
+        <button onclick="forceReset()" style="margin-top: 20px; padding: 12px 24px; background: #9f1239; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">Limpar Cache e Tentar Novamente</button>
     </div>
 
     <div id="loading-screen">
         <div class="spinner"></div>
         <h2 style="margin-top: 16px; color: #4f46e5; font-weight: 800;">FinancePro</h2>
-        <p id="load-msg" style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Iniciando sistema...</p>
-        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Demorando muito? Clique aqui</button>
+        <p id="load-msg" style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Carregando módulos...</p>
+        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Clique aqui se não carregar</button>
     </div>
 
     <div id="root"></div>
 
     <script>
-        // Função para remover loader imediatamente se o React demorar
         window.hideLoader = function() {
             const loader = document.getElementById('loading-screen');
             if (loader) {
@@ -77,6 +77,8 @@
         };
 
         function forceReset() {
+            localStorage.clear();
+            sessionStorage.clear();
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for(let r of regs) r.unregister();
@@ -87,28 +89,26 @@
                     for(let k of keys) caches.delete(k);
                 });
             }
-            localStorage.clear();
-            sessionStorage.clear();
-            // Recarrega com um parâmetro para ignorar cache do servidor
-            window.location.href = window.location.pathname + '?reset=' + Date.now();
+            // Recarrega forçando bypass do cache do servidor
+            window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
         }
 
         window.onerror = function(msg, url, line, col, error) {
-            console.error("Erro capturado:", msg);
-            // Se for erro de importação, mostra o overlay
-            if (msg.includes('import') || msg.includes('Refused to execute')) {
-                document.getElementById('error-overlay').style.display = 'block';
-                document.getElementById('error-log').textContent += `\n[Erro]: ${msg}`;
-            }
+            document.getElementById('error-overlay').style.display = 'block';
+            document.getElementById('error-log').textContent += `\n[Erro]: ${msg}\n[Arquivo]: ${url}\n[Linha]: ${line}`;
             return false;
         };
 
-        // Mostrar botão de emergência mais cedo (3 segundos)
+        window.addEventListener('unhandledrejection', function(event) {
+            document.getElementById('error-overlay').style.display = 'block';
+            document.getElementById('error-log').textContent += `\n[Promise Error]: ${event.reason}`;
+        });
+
         setTimeout(() => {
             const btn = document.getElementById('emergency-btn');
             if (btn) btn.style.display = 'block';
-            document.getElementById('load-msg').textContent = "Houve um problema no cache do seu navegador.";
-        }, 3000);
+            document.getElementById('load-msg').textContent = "O navegador está demorando para processar os arquivos.";
+        }, 4000);
     </script>
     <script type="module" src="index.tsx"></script>
 </body>

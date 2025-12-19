@@ -1,22 +1,13 @@
 
-const CACHE_NAME = 'financepro-v6-cleanup';
-
-self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
+// Service Worker v7 - Limpeza Total
+self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.map(k => caches.delete(k))
-      );
-    })
-  );
-  return self.clients.claim();
+    event.waitUntil(
+        caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+    );
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Pass-through: Não cacheia nada nesta versão para resolver o problema de carregamento
-  return fetch(event.request);
+    event.respondWith(fetch(event.request));
 });
