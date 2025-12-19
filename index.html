@@ -41,8 +41,8 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
-    "lucide-react": "https://esm.sh/lucide-react@0.461.0?external=react",
-    "recharts": "https://esm.sh/recharts@2.13.3?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.461.0?deps=react@19.0.0",
+    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
@@ -61,40 +61,54 @@
         <div class="spinner"></div>
         <h2 style="margin-top: 16px; color: #4f46e5; font-weight: 800;">FinancePro</h2>
         <p id="load-msg" style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Iniciando sistema...</p>
-        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Limpar Cache e Recarregar</button>
+        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Demorando muito? Clique aqui</button>
     </div>
 
     <div id="root"></div>
 
     <script>
+        // Função para remover loader imediatamente se o React demorar
+        window.hideLoader = function() {
+            const loader = document.getElementById('loading-screen');
+            if (loader) {
+                loader.style.opacity = '0';
+                setTimeout(() => loader.remove(), 500);
+            }
+        };
+
         function forceReset() {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for(let r of regs) r.unregister();
+                });
             }
             if ('caches' in window) {
-                caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+                caches.keys().then(keys => {
+                    for(let k of keys) caches.delete(k);
+                });
             }
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = window.location.pathname + '?clear=' + Date.now();
+            // Recarrega com um parâmetro para ignorar cache do servidor
+            window.location.href = window.location.pathname + '?reset=' + Date.now();
         }
 
         window.onerror = function(msg, url, line, col, error) {
-            document.getElementById('error-overlay').style.display = 'block';
-            document.getElementById('error-log').textContent += `\n[Error]: ${msg}\nAt: ${url}:${line}:${col}`;
+            console.error("Erro capturado:", msg);
+            // Se for erro de importação, mostra o overlay
+            if (msg.includes('import') || msg.includes('Refused to execute')) {
+                document.getElementById('error-overlay').style.display = 'block';
+                document.getElementById('error-log').textContent += `\n[Erro]: ${msg}`;
+            }
             return false;
         };
 
-        window.addEventListener('unhandledrejection', function(event) {
-            document.getElementById('error-overlay').style.display = 'block';
-            document.getElementById('error-log').textContent += `\n[Promise Error]: ${event.reason}`;
-        });
-
+        // Mostrar botão de emergência mais cedo (3 segundos)
         setTimeout(() => {
             const btn = document.getElementById('emergency-btn');
             if (btn) btn.style.display = 'block';
-            document.getElementById('load-msg').textContent = "O cache está lento ou bloqueado.";
-        }, 6000);
+            document.getElementById('load-msg').textContent = "Houve um problema no cache do seu navegador.";
+        }, 3000);
     </script>
     <script type="module" src="index.tsx"></script>
 </body>

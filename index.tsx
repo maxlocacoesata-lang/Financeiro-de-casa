@@ -4,6 +4,13 @@ import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 
 const mountApp = () => {
+  console.log("Iniciando montagem do FinancePro...");
+  
+  // Força a remoção do loader assim que o código começa a rodar
+  if (typeof (window as any).hideLoader === 'function') {
+    (window as any).hideLoader();
+  }
+
   const container = document.getElementById('root');
   if (!container) return;
 
@@ -14,25 +21,19 @@ const mountApp = () => {
         <App />
       </React.StrictMode>
     );
-    
-    // Pequeno delay para garantir que o primeiro frame do React foi desenhado
-    setTimeout(() => {
-      const loader = document.getElementById('loading-screen');
-      if (loader) {
-        loader.style.opacity = '0';
-        setTimeout(() => loader.remove(), 500);
-      }
-    }, 100);
-    
-    console.log("FinancePro montado com sucesso.");
+    console.log("FinancePro montado.");
   } catch (err) {
-    console.error("Erro ao montar React:", err);
-    const display = document.getElementById('error-display');
-    if (display) display.style.display = 'block';
+    console.error("Erro crítico no React:", err);
+    const display = document.getElementById('error-overlay');
+    if (display) {
+      display.style.display = 'block';
+      const log = document.getElementById('error-log');
+      if (log) log.textContent += `\n[Mount Error]: ${err}`;
+    }
   }
 };
 
-// Executa assim que o script carregar
+// Tenta montar imediatamente
 if (document.readyState === 'complete' || document.readyState === 'interactive') {
   mountApp();
 } else {
