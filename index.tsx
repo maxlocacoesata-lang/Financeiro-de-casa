@@ -3,19 +3,19 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 
-// Polifill básico para process em ambiente de navegador puro
-if (typeof window !== 'undefined' && !window.process) {
-  (window as any).process = { env: {} };
+// Garante que o process.env exista para bibliotecas que o requeiram
+if (typeof window !== 'undefined') {
+  (window as any).process = { env: { API_KEY: '' } };
 }
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Elemento raiz não encontrado");
+const container = document.getElementById('root');
+if (container) {
+  const root = createRoot(container);
+  root.render(
+    <React.StrictMode>
+      <App />
+    </React.StrictMode>
+  );
+} else {
+  console.error("Não foi possível encontrar o elemento #root");
 }
-
-const root = createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
