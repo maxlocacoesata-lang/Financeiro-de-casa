@@ -23,8 +23,9 @@
             border: 2px solid #f87171; z-index: 2000; font-size: 14px;
         }
         .emergency-btn {
-            display: none; margin-top: 20px; padding: 10px 20px;
-            background: #4f46e5; color: white; border-radius: 8px; font-weight: bold;
+            display: none; margin-top: 20px; padding: 12px 24px;
+            background: #4f46e5; color: white; border-radius: 12px; font-weight: bold;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
         }
     </style>
     <script type="importmap">
@@ -34,8 +35,8 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
-    "recharts": "https://esm.sh/recharts@2.13.3?external=react,react-dom",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@19.0.0",
+    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
@@ -45,43 +46,59 @@
 </head>
 <body>
     <div id="error-display">
-        <h2 class="font-bold mb-2">Erro Crítico de Inicialização</h2>
+        <h2 class="font-bold mb-2">Erro de Inicialização</h2>
         <div id="error-content" class="text-xs font-mono mb-4"></div>
-        <button onclick="clearCacheAndReload()" class="bg-red-600 text-white px-4 py-2 rounded-lg w-full">Limpar Cache e Recarregar</button>
+        <button onclick="clearCacheAndReload()" class="bg-red-600 text-white px-4 py-2 rounded-lg w-full">Limpar Tudo e Recarregar</button>
     </div>
+
     <div id="loading-screen">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-indigo-600 font-bold">FinancePro</p>
-        <p id="loading-status" class="text-gray-400 text-[10px] mt-2">Carregando módulos...</p>
-        <button id="emergency-btn" onclick="clearCacheAndReload()" class="emergency-btn">Demorando muito? Clique aqui</button>
+        <p class="text-indigo-600 font-extrabold text-xl tracking-tight">FinancePro</p>
+        <p id="loading-status" class="text-gray-400 text-xs mt-2">Iniciando módulos...</p>
+        <button id="emergency-btn" onclick="clearCacheAndReload()" class="emergency-btn">Limpar Cache e Abrir App</button>
     </div>
+
     <div id="root"></div>
+
     <script>
         function clearCacheAndReload() {
+            // Remove Service Workers
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for(let reg of regs) reg.unregister();
                 });
             }
-            caches.keys().then(names => {
-                for (let name of names) caches.delete(name);
-            });
-            setTimeout(() => window.location.reload(true), 500);
+            // Limpa Caches do Browser
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    for (let name of names) caches.delete(name);
+                });
+            }
+            // Força recarregamento do servidor
+            setTimeout(() => {
+                window.location.href = window.location.pathname + '?t=' + Date.now();
+            }, 500);
         }
 
-        window.onerror = function(msg, url, line) {
-            document.getElementById('error-display').style.display = 'block';
-            document.getElementById('error-content').innerText = `${msg}\nLinha: ${line}`;
-            document.getElementById('loading-screen').style.opacity = '0';
+        // Monitor de erros global
+        window.onerror = function(msg, url, line, col, error) {
+            console.error("Erro Detectado:", msg);
+            const errorDiv = document.getElementById('error-display');
+            if (errorDiv) {
+                errorDiv.style.display = 'block';
+                document.getElementById('error-content').innerText = msg + " (Linha: " + line + ")";
+            }
+            const loader = document.getElementById('loading-screen');
+            if (loader) loader.style.display = 'none';
         };
 
-        // Mostrar botão de emergência após 7 segundos
+        // Mostrar botão após 5 segundos (reduzi o tempo para ser mais rápido)
         setTimeout(() => {
             const btn = document.getElementById('emergency-btn');
             if (btn) btn.style.display = 'block';
             const status = document.getElementById('loading-status');
-            if (status) status.innerText = "Houve um problema no cache do seu navegador.";
-        }, 7000);
+            if (status) status.innerText = "O cache antigo está impedindo o carregamento.";
+        }, 5000);
     </script>
     <script type="module" src="index.tsx"></script>
 </body>
