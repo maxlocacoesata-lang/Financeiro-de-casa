@@ -5,62 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>FinancePro</title>
-    
-    <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#4f46e5">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FinancePro">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910254.png">
     <link rel="manifest" href="manifest.json">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #f8fafc;
-            overscroll-behavior-y: contain;
-            margin: 0;
-            padding: 0;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
         #loading-screen {
-            position: fixed;
-            inset: 0;
-            background: #ffffff;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            transition: opacity 0.5s ease;
+            position: fixed; inset: 0; background: #ffffff;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 1000; transition: opacity 0.5s ease;
         }
         #error-display {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            background: #fee2e2;
-            color: #991b1b;
-            padding: 20px;
-            border-radius: 16px;
-            border: 2px solid #f87171;
-            z-index: 2000;
-            font-size: 14px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            display: none; position: fixed; top: 20px; left: 20px; right: 20px;
+            background: #fee2e2; color: #991b1b; padding: 20px; border-radius: 16px;
+            border: 2px solid #f87171; z-index: 2000; font-size: 14px;
+        }
+        .emergency-btn {
+            display: none; margin-top: 20px; padding: 10px 20px;
+            background: #4f46e5; color: white; border-radius: 8px; font-weight: bold;
         }
     </style>
-
     <script type="importmap">
 {
   "imports": {
@@ -79,67 +45,44 @@
 </head>
 <body>
     <div id="error-display">
-        <h2 class="font-bold mb-2">Ops! Ocorreu um erro</h2>
-        <div id="error-content" class="text-xs font-mono break-all mb-4"></div>
-        <button onclick="window.location.reload()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold w-full">Tentar Novamente</button>
+        <h2 class="font-bold mb-2">Erro Crítico de Inicialização</h2>
+        <div id="error-content" class="text-xs font-mono mb-4"></div>
+        <button onclick="clearCacheAndReload()" class="bg-red-600 text-white px-4 py-2 rounded-lg w-full">Limpar Cache e Recarregar</button>
     </div>
-    
     <div id="loading-screen">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
         <p class="text-indigo-600 font-bold">FinancePro</p>
-        <p class="text-gray-400 text-[10px] mt-2">Otimizando para seu dispositivo...</p>
+        <p id="loading-status" class="text-gray-400 text-[10px] mt-2">Carregando módulos...</p>
+        <button id="emergency-btn" onclick="clearCacheAndReload()" class="emergency-btn">Demorando muito? Clique aqui</button>
     </div>
-    
     <div id="root"></div>
-
     <script>
-        // Sistema de monitoramento de erros crítico
-        function showError(msg) {
-            const display = document.getElementById('error-display');
-            const content = document.getElementById('error-content');
-            if(display && content) {
-                display.style.display = 'block';
-                content.innerText = msg;
+        function clearCacheAndReload() {
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    for(let reg of regs) reg.unregister();
+                });
             }
-            const loader = document.getElementById('loading-screen');
-            if(loader) loader.style.display = 'none';
+            caches.keys().then(names => {
+                for (let name of names) caches.delete(name);
+            });
+            setTimeout(() => window.location.reload(true), 500);
         }
 
-        window.onerror = function(msg, url, line, col, error) {
-            showError(`JS: ${msg}\nLinha: ${line}\nURL: ${url}`);
-            return false;
+        window.onerror = function(msg, url, line) {
+            document.getElementById('error-display').style.display = 'block';
+            document.getElementById('error-content').innerText = `${msg}\nLinha: ${line}`;
+            document.getElementById('loading-screen').style.opacity = '0';
         };
 
-        window.addEventListener('unhandledrejection', function(event) {
-            showError(`Promise: ${event.reason}`);
-        });
-
-        // Timeout de segurança para o loader
+        // Mostrar botão de emergência após 7 segundos
         setTimeout(() => {
-            const loader = document.getElementById('loading-screen');
-            if (loader && loader.style.opacity !== '0') {
-                console.warn("Carregamento demorado...");
-            }
-        }, 5000);
+            const btn = document.getElementById('emergency-btn');
+            if (btn) btn.style.display = 'block';
+            const status = document.getElementById('loading-status');
+            if (status) status.innerText = "Houve um problema no cache do seu navegador.";
+        }, 7000);
     </script>
-
     <script type="module" src="index.tsx"></script>
-    
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('./sw.js').then(reg => {
-            reg.onupdatefound = () => {
-                const installingWorker = reg.installing;
-                installingWorker.onstatechange = () => {
-                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                        window.location.reload();
-                    }
-                };
-            };
-          });
-        });
-      }
-    </script>
 </body>
 </html>

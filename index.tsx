@@ -3,19 +3,33 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.tsx';
 
-// Garante que o process.env exista para bibliotecas que o requeiram
-if (typeof window !== 'undefined') {
-  (window as any).process = { env: { API_KEY: '' } };
-}
+const init = () => {
+  const container = document.getElementById('root');
+  if (!container) return;
 
-const container = document.getElementById('root');
-if (container) {
-  const root = createRoot(container);
-  root.render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>
-  );
+  try {
+    const root = createRoot(container);
+    root.render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+    
+    // Remove o loader assim que o React começar a renderizar
+    const loader = document.getElementById('loading-screen');
+    if (loader) {
+      loader.style.opacity = '0';
+      setTimeout(() => loader.remove(), 500);
+    }
+  } catch (err) {
+    console.error("Erro na montagem do React:", err);
+    const display = document.getElementById('error-display');
+    if (display) display.style.display = 'block';
+  }
+};
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
 } else {
-  console.error("Não foi possível encontrar o elemento #root");
+  init();
 }
