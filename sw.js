@@ -1,5 +1,5 @@
 
-// Service Worker v7 - Limpeza Total
+// Service Worker Pass-through
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
     event.waitUntil(
@@ -9,5 +9,6 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
+    // Sem cache para evitar problemas de carregamento
     event.respondWith(fetch(event.request));
 });

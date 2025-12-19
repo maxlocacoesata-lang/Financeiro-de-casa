@@ -41,9 +41,9 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
-    "lucide-react": "https://esm.sh/lucide-react@0.461.0?deps=react@19.0.0",
-    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
-    "@google/genai": "https://esm.sh/@google/genai@1.3.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.468.0?deps=react@19.0.0",
+    "recharts": "https://esm.sh/recharts@2.15.0?deps=react@19.0.0,react-dom@19.0.0",
+    "@google/genai": "https://esm.sh/@google/genai@0.21.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
   }
@@ -52,17 +52,17 @@
 </head>
 <body>
     <div id="error-overlay">
-        <h1 style="font-size: 20px; font-weight: bold; margin-bottom: 12px;">Erro de Inicialização</h1>
-        <p>Houve um erro ao carregar os componentes. Clique abaixo para resetar o navegador.</p>
+        <h1 style="font-size: 20px; font-weight: bold; margin-bottom: 12px;">Erro Crítico</h1>
+        <p>Houve um erro técnico. Clique abaixo para limpar o cache.</p>
         <pre id="error-log" style="background: #fee2e2; padding: 12px; margin-top: 12px; border-radius: 8px; white-space: pre-wrap; font-size: 12px;"></pre>
-        <button onclick="forceReset()" style="margin-top: 20px; padding: 12px 24px; background: #9f1239; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">Limpar Cache e Tentar Novamente</button>
+        <button onclick="forceReset()" style="margin-top: 20px; padding: 12px 24px; background: #9f1239; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer;">Resetar App</button>
     </div>
 
     <div id="loading-screen">
         <div class="spinner"></div>
         <h2 style="margin-top: 16px; color: #4f46e5; font-weight: 800;">FinancePro</h2>
-        <p id="load-msg" style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Carregando módulos...</p>
-        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Clique aqui se não carregar</button>
+        <p id="load-msg" style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Conectando...</p>
+        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Limpar Cache e Recarregar</button>
     </div>
 
     <div id="root"></div>
@@ -77,8 +77,6 @@
         };
 
         function forceReset() {
-            localStorage.clear();
-            sessionStorage.clear();
             if ('serviceWorker' in navigator) {
                 navigator.serviceWorker.getRegistrations().then(regs => {
                     for(let r of regs) r.unregister();
@@ -89,26 +87,22 @@
                     for(let k of keys) caches.delete(k);
                 });
             }
-            // Recarrega forçando bypass do cache do servidor
-            window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.reload(true);
         }
 
-        window.onerror = function(msg, url, line, col, error) {
+        window.onerror = function(msg, url, line) {
             document.getElementById('error-overlay').style.display = 'block';
-            document.getElementById('error-log').textContent += `\n[Erro]: ${msg}\n[Arquivo]: ${url}\n[Linha]: ${line}`;
+            document.getElementById('error-log').textContent += `\nError: ${msg}\nFile: ${url}\nLine: ${line}`;
             return false;
         };
 
-        window.addEventListener('unhandledrejection', function(event) {
-            document.getElementById('error-overlay').style.display = 'block';
-            document.getElementById('error-log').textContent += `\n[Promise Error]: ${event.reason}`;
-        });
-
+        // Mostrar botão após 5 segundos
         setTimeout(() => {
             const btn = document.getElementById('emergency-btn');
             if (btn) btn.style.display = 'block';
-            document.getElementById('load-msg').textContent = "O navegador está demorando para processar os arquivos.";
-        }, 4000);
+        }, 5000);
     </script>
     <script type="module" src="index.tsx"></script>
 </body>
