@@ -41,23 +41,23 @@
             align-items: center;
             justify-content: center;
             z-index: 1000;
+            transition: opacity 0.5s ease;
         }
         #error-display {
             display: none;
             position: fixed;
-            top: 20px;
-            left: 20px;
-            right: 20px;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
             background: #fee2e2;
             color: #991b1b;
-            padding: 16px;
-            border-radius: 12px;
-            border: 1px solid #f87171;
+            padding: 20px;
+            border-radius: 16px;
+            border: 2px solid #f87171;
             z-index: 2000;
-            font-size: 12px;
-            white-space: pre-wrap;
-            overflow: auto;
-            max-height: 80vh;
+            font-size: 14px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
     </style>
 
@@ -67,8 +67,9 @@
     "react": "https://esm.sh/react@19.0.0",
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0",
-    "recharts": "https://esm.sh/recharts@2.13.3",
+    "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
+    "lucide-react": "https://esm.sh/lucide-react@0.460.0?external=react",
+    "recharts": "https://esm.sh/recharts@2.13.3?external=react,react-dom",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
@@ -77,43 +78,68 @@
 </script>
 </head>
 <body>
-    <div id="error-display"></div>
+    <div id="error-display">
+        <h2 class="font-bold mb-2">Ops! Ocorreu um erro</h2>
+        <div id="error-content" class="text-xs font-mono break-all mb-4"></div>
+        <button onclick="window.location.reload()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold w-full">Tentar Novamente</button>
+    </div>
     
     <div id="loading-screen">
         <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-indigo-600 font-bold">Iniciando FinancePro...</p>
-        <p class="text-gray-400 text-xs mt-2">Certifique-se de estar usando um servidor HTTP.</p>
+        <p class="text-indigo-600 font-bold">FinancePro</p>
+        <p class="text-gray-400 text-[10px] mt-2">Otimizando para seu dispositivo...</p>
     </div>
     
     <div id="root"></div>
 
     <script>
-        // Capturador de erros para diagnóstico
-        window.onerror = function(msg, url, line, col, error) {
+        // Sistema de monitoramento de erros crítico
+        function showError(msg) {
             const display = document.getElementById('error-display');
-            display.style.display = 'block';
-            display.innerHTML = `<strong>Erro de Carregamento:</strong>\n${msg}\nNo arquivo: ${url}\nLinha: ${line}`;
+            const content = document.getElementById('error-content');
+            if(display && content) {
+                display.style.display = 'block';
+                content.innerText = msg;
+            }
+            const loader = document.getElementById('loading-screen');
+            if(loader) loader.style.display = 'none';
+        }
+
+        window.onerror = function(msg, url, line, col, error) {
+            showError(`JS: ${msg}\nLinha: ${line}\nURL: ${url}`);
             return false;
         };
 
         window.addEventListener('unhandledrejection', function(event) {
-            const display = document.getElementById('error-display');
-            display.style.display = 'block';
-            display.innerHTML = `<strong>Erro de Promessa:</strong>\n${event.reason}`;
+            showError(`Promise: ${event.reason}`);
         });
 
-        // Remove o loader após 2 segundos ou quando o React montar
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const loader = document.getElementById('loading-screen');
-                if (loader) {
-                    loader.style.opacity = '0';
-                    setTimeout(() => loader.remove(), 500);
-                }
-            }, 1500);
-        });
+        // Timeout de segurança para o loader
+        setTimeout(() => {
+            const loader = document.getElementById('loading-screen');
+            if (loader && loader.style.opacity !== '0') {
+                console.warn("Carregamento demorado...");
+            }
+        }, 5000);
     </script>
 
     <script type="module" src="index.tsx"></script>
+    
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('./sw.js').then(reg => {
+            reg.onupdatefound = () => {
+                const installingWorker = reg.installing;
+                installingWorker.onstatechange = () => {
+                    if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                        window.location.reload();
+                    }
+                };
+            };
+          });
+        });
+      }
+    </script>
 </body>
 </html>
