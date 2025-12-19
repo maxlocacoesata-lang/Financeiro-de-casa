@@ -9,23 +9,29 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910254.png">
     <link rel="manifest" href="manifest.json">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Inter', sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
         #loading-screen {
             position: fixed; inset: 0; background: #ffffff;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             z-index: 1000; transition: opacity 0.5s ease;
         }
-        #error-display {
-            display: none; position: fixed; top: 20px; left: 20px; right: 20px;
-            background: #fee2e2; color: #991b1b; padding: 20px; border-radius: 16px;
-            border: 2px solid #f87171; z-index: 2000; font-size: 14px;
+        #error-overlay {
+            display: none; position: fixed; inset: 0; background: #fff1f2;
+            color: #9f1239; padding: 24px; z-index: 9999; overflow: auto;
+            font-family: monospace; font-size: 12px;
         }
+        .spinner {
+            width: 40px; height: 40px; border: 4px solid #e2e8f0;
+            border-top: 4px solid #4f46e5; border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .emergency-btn {
-            display: none; margin-top: 20px; padding: 12px 24px;
-            background: #4f46e5; color: white; border-radius: 12px; font-weight: bold;
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            display: none; margin-top: 24px; padding: 12px 24px;
+            background: #4f46e5; color: white; border-radius: 12px;
+            font-weight: bold; border: none; cursor: pointer;
         }
     </style>
     <script type="importmap">
@@ -35,8 +41,8 @@
     "react-dom": "https://esm.sh/react-dom@19.0.0",
     "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
     "react/jsx-runtime": "https://esm.sh/react@19.0.0/jsx-runtime",
-    "lucide-react": "https://esm.sh/lucide-react@0.460.0?deps=react@19.0.0",
-    "recharts": "https://esm.sh/recharts@2.13.3?deps=react@19.0.0,react-dom@19.0.0",
+    "lucide-react": "https://esm.sh/lucide-react@0.461.0?external=react",
+    "recharts": "https://esm.sh/recharts@2.13.3?external=react,react-dom",
     "@google/genai": "https://esm.sh/@google/genai@1.3.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/"
@@ -45,60 +51,50 @@
 </script>
 </head>
 <body>
-    <div id="error-display">
-        <h2 class="font-bold mb-2">Erro de Inicialização</h2>
-        <div id="error-content" class="text-xs font-mono mb-4"></div>
-        <button onclick="clearCacheAndReload()" class="bg-red-600 text-white px-4 py-2 rounded-lg w-full">Limpar Tudo e Recarregar</button>
+    <div id="error-overlay">
+        <h1 style="font-size: 18px; font-weight: bold; margin-bottom: 12px;">Erro de Carregamento</h1>
+        <pre id="error-log"></pre>
+        <button onclick="forceReset()" style="margin-top: 20px; padding: 10px; background: #9f1239; color: white; border: none; border-radius: 5px;">Resetar Aplicativo</button>
     </div>
 
     <div id="loading-screen">
-        <div class="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <p class="text-indigo-600 font-extrabold text-xl tracking-tight">FinancePro</p>
-        <p id="loading-status" class="text-gray-400 text-xs mt-2">Iniciando módulos...</p>
-        <button id="emergency-btn" onclick="clearCacheAndReload()" class="emergency-btn">Limpar Cache e Abrir App</button>
+        <div class="spinner"></div>
+        <h2 style="margin-top: 16px; color: #4f46e5; font-weight: 800;">FinancePro</h2>
+        <p id="load-msg" style="color: #94a3b8; font-size: 12px; margin-top: 8px;">Iniciando sistema...</p>
+        <button id="emergency-btn" onclick="forceReset()" class="emergency-btn">Limpar Cache e Recarregar</button>
     </div>
 
     <div id="root"></div>
 
     <script>
-        function clearCacheAndReload() {
-            // Remove Service Workers
+        function forceReset() {
             if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(regs => {
-                    for(let reg of regs) reg.unregister();
-                });
+                navigator.serviceWorker.getRegistrations().then(regs => regs.forEach(r => r.unregister()));
             }
-            // Limpa Caches do Browser
             if ('caches' in window) {
-                caches.keys().then(names => {
-                    for (let name of names) caches.delete(name);
-                });
+                caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
             }
-            // Força recarregamento do servidor
-            setTimeout(() => {
-                window.location.href = window.location.pathname + '?t=' + Date.now();
-            }, 500);
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = window.location.pathname + '?clear=' + Date.now();
         }
 
-        // Monitor de erros global
         window.onerror = function(msg, url, line, col, error) {
-            console.error("Erro Detectado:", msg);
-            const errorDiv = document.getElementById('error-display');
-            if (errorDiv) {
-                errorDiv.style.display = 'block';
-                document.getElementById('error-content').innerText = msg + " (Linha: " + line + ")";
-            }
-            const loader = document.getElementById('loading-screen');
-            if (loader) loader.style.display = 'none';
+            document.getElementById('error-overlay').style.display = 'block';
+            document.getElementById('error-log').textContent += `\n[Error]: ${msg}\nAt: ${url}:${line}:${col}`;
+            return false;
         };
 
-        // Mostrar botão após 5 segundos (reduzi o tempo para ser mais rápido)
+        window.addEventListener('unhandledrejection', function(event) {
+            document.getElementById('error-overlay').style.display = 'block';
+            document.getElementById('error-log').textContent += `\n[Promise Error]: ${event.reason}`;
+        });
+
         setTimeout(() => {
             const btn = document.getElementById('emergency-btn');
             if (btn) btn.style.display = 'block';
-            const status = document.getElementById('loading-status');
-            if (status) status.innerText = "O cache antigo está impedindo o carregamento.";
-        }, 5000);
+            document.getElementById('load-msg').textContent = "O cache está lento ou bloqueado.";
+        }, 6000);
     </script>
     <script type="module" src="index.tsx"></script>
 </body>

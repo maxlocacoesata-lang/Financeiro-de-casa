@@ -1,5 +1,5 @@
 
-const CACHE_NAME = 'financepro-v4';
+const CACHE_NAME = 'financepro-v5';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -8,17 +8,18 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) => {
-      return Promise.all(keys.map((key) => caches.delete(key)));
+      return Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      );
     })
   );
   return self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-  // Ignora cache para o arquivo principal e módulos para evitar o loop de loading
-  if (event.request.mode === 'navigate' || event.request.url.includes('index.tsx')) {
-    event.respondWith(fetch(event.request));
-    return;
+  // Não cacheia scripts de inicialização para evitar loops
+  if (event.request.url.includes('index.tsx') || event.request.mode === 'navigate') {
+    return event.respondWith(fetch(event.request));
   }
   
   event.respondWith(
